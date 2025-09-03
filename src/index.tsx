@@ -72,10 +72,12 @@ let currentThemeName: string | null = null;
 // --- Gemini AI Setup ---
 const API_KEY = import.meta.env.VITE_API_KEY;
 const MAX_PROMPT_LENGTH = 500; // Define a maximum length for the prompt
-const MAX_IMAGE_SIZE_MB = 5; // Define a maximum image size in MB
+const MAX_IMAGE_SIZE_MB = 10; // Define a maximum image size in MB
 if (!API_KEY) {
   showError("API key is missing. Please set the API_KEY environment variable.");
-  throw new Error("API key is missing. Please ensure it's properly configured.");
+  throw new Error(
+    "API key is missing. Please ensure it's properly configured."
+  );
 }
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
@@ -196,7 +198,9 @@ function handleImageUpload(event: Event) {
 
   if (file) {
     if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
-      showError(`Image size exceeds ${MAX_IMAGE_SIZE_MB}MB. Please upload a smaller image.`);
+      showError(
+        `Image size exceeds ${MAX_IMAGE_SIZE_MB}MB. Please upload a smaller image.`
+      );
       clearImage(); // Clear the selected image
       return;
     }
@@ -667,7 +671,9 @@ async function handleGenerate(event: Event) {
   }
 
   if (userPrompt.length > MAX_PROMPT_LENGTH) {
-    showError(`Prompt is too long. Maximum length is ${MAX_PROMPT_LENGTH} characters.`);
+    showError(
+      `Prompt is too long. Maximum length is ${MAX_PROMPT_LENGTH} characters.`
+    );
     return;
   }
 
