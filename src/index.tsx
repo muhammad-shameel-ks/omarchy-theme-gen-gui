@@ -419,7 +419,6 @@ size = 14.0
  * @returns A string containing the btop theme configuration.
  */
 function generateBtopThemeFile(theme: FullTheme): string {
-  const promptInfo = input.value.trim() || "uploaded image";
   return `
 # Theme: ${currentThemeName || "custom-theme"}
 theme[main_bg]="${theme.primary.background}"
