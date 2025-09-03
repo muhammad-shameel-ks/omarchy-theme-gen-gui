@@ -543,6 +543,40 @@ $check_color = ${accentColor}
 }
 
 /**
+ * Generates the content for the mako.ini file.
+ * @param theme - The Full theme object.
+ * @returns A string containing the mako.ini configuration.
+ */
+function generateMakoIniFile(theme: FullTheme): string {
+  return `
+text-color=${theme.primary.foreground}
+border-color=${theme.accent || theme.normal.blue}
+background-color=${theme.primary.background}
+width=420
+height=110
+padding=10
+border-size=2
+font=Liberation Sans 11
+anchor=top-right
+outer-margin=20
+default-timeout=5000
+max-icon-size=32
+
+[app-name=Spotify]
+invisible=1
+
+[mode=do-not-disturb]
+invisible=true
+
+[mode=do-not-disturb app-name=notify-send]
+invisible=false
+
+[urgency=critical]
+default-timeout=0
+    `.trim();
+}
+
+/**
  * Handles the download of the generated theme files as a zip.
  */
 async function handleDownload() {
@@ -557,6 +591,7 @@ async function handleDownload() {
     const chromiumContent = generateChromiumThemeFile(currentTheme);
     const hyprlandContent = generateHyprlandConfFile(currentTheme);
     const hyprlockContent = generateHyprlockConfFile(currentTheme);
+    const makoContent = generateMakoIniFile(currentTheme);
     // Use the selected value from the dropdown for the icon theme
     const selectedIconTheme = iconThemeSelect.value;
     const iconsContent = selectedIconTheme;
@@ -567,6 +602,7 @@ async function handleDownload() {
     zip.file("chromium.theme", chromiumContent);
     zip.file("hyprland.conf", hyprlandContent);
     zip.file("hyprlock.conf", hyprlockContent);
+    zip.file("mako.ini", makoContent);
     zip.file("icons.theme", iconsContent);
 
     // Add uploaded image to a 'backgrounds' folder if it exists
