@@ -67,6 +67,7 @@ const iconThemeSelect = document.getElementById(
 let uploadedImage: { data: string; mimeType: string; name: string } | null =
   null;
 let currentTheme: FullTheme | null = null;
+let currentThemeName: string | null = null;
 
 // --- Gemini AI Setup ---
 const API_KEY = import.meta.env.VITE_API_KEY;
@@ -285,6 +286,27 @@ function rgbDistance(
       Math.pow(rgb1.g - rgb2.g, 2) +
       Math.pow(rgb1.b - rgb2.b, 2)
   );
+}
+
+/**
+ * Generates a theme name using the AI.
+ * @param prompt The user's prompt or description.
+ * @returns A promise that resolves to the generated theme name.
+ */
+async function generateThemeName(prompt: string): Promise<string> {
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-pro", // Using a text-only model for name generation
+      contents: `Generate a creative and concise theme name (max 2 words) based on the following description: "${prompt}". Separate words with a hyphen. Example: "Deep-Ocean" or "Forest-Mist".`,
+    });
+    if (response.text) {
+      return response.text.trim().replace(/\s+/g, "-"); // Replace spaces with hyphens
+    }
+    return "Custom-Theme"; // Fallback if response.text is undefined
+  } catch (error) {
+    console.error("Error generating theme name:", error);
+    return "Custom-Theme"; // Fallback name
+  }
 }
 
 // Define a set of common named colors and their hex values
@@ -577,6 +599,24 @@ default-timeout=0
 }
 
 /**
+ * Generates the content for the neovim.lua file.
+ * @param themeName - The generated theme name.
+ * @returns A string containing the neovim lua configuration.
+ */
+function generateNeovimLuaFile(themeName: string): string {
+  return `
+return {
+	{
+		"LazyVim/LazyVim",
+		opts = {
+			colorscheme = "${themeName}",
+		},
+	},
+}
+    `.trim();
+}
+
+/**
  * Handles the download of the generated theme files as a zip.
  */
 async function handleDownload() {
@@ -585,6 +625,7 @@ async function handleDownload() {
     return;
   }
 
+
   try {
     const alacrittyContent = generateAlacrittyThemeFile(currentTheme);
     const btopContent = generateBtopThemeFile(currentTheme);
@@ -592,6 +633,10 @@ async function handleDownload() {
     const hyprlandContent = generateHyprlandConfFile(currentTheme);
     const hyprlockContent = generateHyprlockConfFile(currentTheme);
     const makoContent = generateMakoIniFile(currentTheme);
+    const neovimContent = generateNeovimLuaFile(currentThemeName || "default-theme");
+    const swayosdContent = generateSwayOsdCssFile(currentTheme);
+    const walkerContent = generateWalkerCssFile(currentTheme);
+    const waybarContent = generateWaybarCssFile(currentTheme);
     // Use the selected value from the dropdown for the icon theme
     const selectedIconTheme = iconThemeSelect.value;
     const iconsContent = selectedIconTheme;
@@ -603,6 +648,10 @@ async function handleDownload() {
     zip.file("hyprland.conf", hyprlandContent);
     zip.file("hyprlock.conf", hyprlockContent);
     zip.file("mako.ini", makoContent);
+    zip.file("neovim.lua", neovimContent);
+    zip.file("swayosd.css", swayosdContent);
+    zip.file("walker.css", walkerContent);
+    zip.file("waybar.css", waybarContent);
     zip.file("icons.theme", iconsContent);
 
     // Add uploaded image to a 'backgrounds' folder if it exists
@@ -620,7 +669,7 @@ async function handleDownload() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "ai_terminal_theme.zip";
+    a.download = `${currentThemeName || "ai_terminal_theme"}.zip`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -653,6 +702,7 @@ async function handleGenerate(event: Event) {
   setLoading(true);
   paletteContainer.innerHTML = "";
   currentTheme = null;
+  currentThemeName = null;
 
   try {
     let basePrompt: string;
@@ -744,6 +794,8 @@ async function handleGenerate(event: Event) {
       const closestYaruColor = getClosestNamedColor(currentTheme.accent);
       iconThemeSelect.value = closestYaruColor; // Pre-select the closest color
     }
+
+    currentThemeName = await generateThemeName(userPrompt || "default");
   } catch (error) {
     console.error("Error generating palette:", error);
     showError(
@@ -752,6 +804,51 @@ async function handleGenerate(event: Event) {
   } finally {
     setLoading(false);
   }
+}
+
+
+
+/**
+ * Generates the content for the swayosd.css file.
+ * @param theme - The Full theme object.
+ * @returns A string containing the swayosd CSS configuration.
+ */
+function generateSwayOsdCssFile(theme: FullTheme): string {
+  return `
+@define-color background-color ${theme.primary.background};
+@define-color border-color ${theme.accent || theme.normal.blue};
+@define-color label ${theme.primary.foreground};
+@define-color image ${theme.primary.foreground};
+@define-color progress ${theme.accent || theme.normal.blue};
+    `.trim();
+}
+
+/**
+ * Generates the content for the walker.css file.
+ * @param theme - The Full theme object.
+ * @returns A string containing the walker CSS configuration.
+ */
+function generateWalkerCssFile(theme: FullTheme): string {
+  return `
+@define-color selected-text ${theme.accent || theme.normal.blue};
+@define-color text ${theme.primary.foreground};
+@define-color base ${theme.primary.background};
+@define-color border ${theme.accent || theme.normal.blue};
+@define-color foreground ${theme.primary.foreground};
+@define-color background ${theme.primary.background};
+    `.trim();
+}
+
+/**
+ * Generates the content for the waybar.css file.
+ * @param theme - The Full theme object.
+ * @returns A string containing the waybar CSS configuration.
+ */
+function generateWaybarCssFile(theme: FullTheme): string {
+  return `
+@define-color foreground ${theme.primary.foreground};
+@define-color background ${theme.primary.background};
+    `.trim();
 }
 
 /**
