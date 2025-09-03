@@ -59,6 +59,9 @@ const downloadButton = document.getElementById(
   "download-button"
 ) as HTMLButtonElement;
 const buttonText = button.querySelector("span");
+const iconThemeSelect = document.getElementById(
+  "icon-theme-select"
+) as HTMLSelectElement;
 
 // --- App State ---
 let uploadedImage: { data: string; mimeType: string; name: string } | null =
@@ -95,10 +98,13 @@ function setLoading(isLoading: boolean) {
     if (buttonText) buttonText.textContent = "Generating...";
     errorContainer.style.display = "none";
     downloadContainer.style.display = "none";
+    iconThemeSelect.disabled = true; // Disable dropdown during generation
+    // iconThemeSelect.innerHTML = '<option value="">Generating...</option>'; // Removed: Do not clear options
   } else {
     loader.style.display = "none";
     button.disabled = false;
     if (buttonText) buttonText.textContent = "Generate";
+    iconThemeSelect.disabled = false; // Enable dropdown after generation
   }
 }
 
@@ -250,6 +256,103 @@ function hexToRgba(hex: string, alpha: number = 1.0): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+// --- Helper Functions for Color Naming ---
+
+/**
+ * Converts a hex color string to an RGB object.
+ * @param hex The hex color string (e.g., "#RRGGBB").
+ * @returns An object with r, g, b properties.
+ */
+function hexToRgb(hex: string) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return { r, g, b };
+}
+
+/**
+ * Calculates the Euclidean distance between two RGB colors.
+ * @param rgb1 First RGB color object.
+ * @param rgb2 Second RGB color object.
+ * @returns The Euclidean distance.
+ */
+function rgbDistance(
+  rgb1: { r: number; g: number; b: number },
+  rgb2: { r: number; g: number; b: number }
+): number {
+  return Math.sqrt(
+    Math.pow(rgb1.r - rgb2.r, 2) +
+      Math.pow(rgb1.g - rgb2.g, 2) +
+      Math.pow(rgb1.b - rgb2.b, 2)
+  );
+}
+
+// Define a set of common named colors and their hex values
+const namedColors: { [key: string]: string } = {
+  // Approximate hex values for Yaru colors
+  Yaru: "#e95420", // Ubuntu orange
+  "Yaru-blue": "#304ffe",
+  "Yaru-dark": "#303030", // A dark grey for the dark theme base
+  "Yaru-magenta": "#9c27b0",
+  "Yaru-olive": "#808000",
+  "Yaru-prussiangreen": "#008080",
+  "Yaru-purple": "#800080",
+  "Yaru-red": "#f44336",
+  "Yaru-sage": "#c2b280",
+  "Yaru-wartybrown": "#4e342e",
+  "Yaru-yellow": "#ffeb3b",
+};
+
+/**
+ * Populates the icon theme dropdown with available Yaru colors.
+ */
+function populateIconThemeDropdown() {
+  iconThemeSelect.innerHTML = ""; // Clear existing options
+  for (const colorName in namedColors) {
+    const option = document.createElement("option");
+    option.value = colorName; // Use the exact name (e.g., "Yaru-blue")
+
+    const colorSquare = document.createElement("span");
+    colorSquare.classList.add("color-square");
+    colorSquare.style.backgroundColor = namedColors[colorName];
+
+    // Create a text node for the readable name
+    const textNode = document.createTextNode(colorName.replace(/-/g, " "));
+
+    // Append both the color square and the text content to the option.
+    // Note: Native <option> elements have limited styling capabilities.
+    // The visual rendering of the color square within the dropdown
+    // might vary significantly across browsers or might not appear as intended.
+    option.appendChild(colorSquare);
+    option.appendChild(textNode);
+
+    iconThemeSelect.appendChild(option);
+  }
+}
+
+/**
+ * Finds the closest named color to a given hex color.
+ * @param hex The hex color string (e.g., "#RRGGBB").
+ * @returns The name of the closest color.
+ */
+function getClosestNamedColor(hex: string): string {
+  const targetRgb = hexToRgb(hex);
+  let closestColorName = "black";
+  let minDistance = Infinity;
+
+  for (const name in namedColors) {
+    const namedHex = namedColors[name];
+    const namedRgb = hexToRgb(namedHex);
+    const distance = rgbDistance(targetRgb, namedRgb);
+
+    if (distance < minDistance) {
+      minDistance = distance;
+      closestColorName = name;
+    }
+  }
+  return closestColorName;
+}
+
 /**
  * Generates the content for the alacritty.toml file.
  * @param theme - The Full theme object.
@@ -368,6 +471,7 @@ theme[upload_end]="${theme.normal.red}"
     `.trim();
 }
 
+
 /**
  * Generates the content for the chromium.theme file.
  * @param theme - The Full theme object.
@@ -453,6 +557,9 @@ async function handleDownload() {
     const chromiumContent = generateChromiumThemeFile(currentTheme);
     const hyprlandContent = generateHyprlandConfFile(currentTheme);
     const hyprlockContent = generateHyprlockConfFile(currentTheme);
+    // Use the selected value from the dropdown for the icon theme
+    const selectedIconTheme = iconThemeSelect.value;
+    const iconsContent = selectedIconTheme;
 
     const zip = new JSZip();
     zip.file("alacritty.toml", alacrittyContent);
@@ -460,6 +567,7 @@ async function handleDownload() {
     zip.file("chromium.theme", chromiumContent);
     zip.file("hyprland.conf", hyprlandContent);
     zip.file("hyprlock.conf", hyprlockContent);
+    zip.file("icons.theme", iconsContent);
 
     // Add uploaded image to a 'backgrounds' folder if it exists
     if (uploadedImage) {
@@ -595,6 +703,11 @@ async function handleGenerate(event: Event) {
     const jsonResponse = JSON.parse(response.text);
     currentTheme = jsonResponse as FullTheme;
     displayPalette(currentTheme);
+    populateIconThemeDropdown(); // Populate dropdown after theme is generated
+    if (currentTheme?.accent) {
+      const closestYaruColor = getClosestNamedColor(currentTheme.accent);
+      iconThemeSelect.value = closestYaruColor; // Pre-select the closest color
+    }
   } catch (error) {
     console.error("Error generating palette:", error);
     showError(

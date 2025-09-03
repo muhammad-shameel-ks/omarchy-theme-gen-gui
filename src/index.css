@@ -86,13 +86,17 @@ p {
 
 #prompt-input:focus,
 #color-mode-select:focus,
-#model-select:focus {
+#model-select:focus,
+#icon-theme-select:focus {
+  /* Added icon-theme-select */
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
 }
 
 #color-mode-select,
-#model-select {
+#model-select,
+#icon-theme-select {
+  /* Added icon-theme-select */
   font-size: 1rem;
   padding: 0.75rem 1rem;
   border: 1px solid var(--border-color);
@@ -110,6 +114,16 @@ p {
   background-size: 16px 12px;
 }
 
+/* Style for the color square in the dropdown options */
+.color-square {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  margin-right: 8px;
+  vertical-align: middle;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
 
 .button-secondary {
   display: inline-flex;
@@ -166,7 +180,7 @@ p {
   margin: 0 auto;
   border-radius: var(--border-radius);
   overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   border: 1px solid var(--border-color);
 }
 
@@ -215,8 +229,12 @@ p {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 #palette-container {
@@ -224,32 +242,34 @@ p {
   min-height: 150px;
   width: 100%;
   border-radius: var(--border-radius);
-  overflow: hidden;
   box-shadow: var(--shadow);
   transition: all 0.3s ease;
+  overflow-x: auto; /* Enable horizontal scrolling */
+  overflow-y: hidden; /* Hide vertical overflow */
+  scroll-snap-type: x mandatory; /* Optional: for snapping effect */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 
 .color-swatch {
-  flex: 1;
+  min-width: 150px; /* Fixed width for each swatch */
+  flex-shrink: 0; /* Prevent shrinking */
   display: flex;
   justify-content: center;
   align-items: flex-end;
   padding: 1rem;
   cursor: pointer;
-  transition: flex 0.3s ease, background-color 0.3s ease;
+  transition: background-color 0.3s ease; /* Removed flex transition */
   position: relative;
+  scroll-snap-align: start; /* Optional: for snapping effect */
 }
 
-.color-swatch:hover {
-  flex: 1.5;
-}
+/* Removed the flex: 1.5 on hover as it conflicts with fixed width */
 
 .color-swatch:focus-visible {
   outline: 3px solid var(--primary-color);
   outline-offset: -3px;
   z-index: 10;
 }
-
 
 .hex-value {
   font-family: monospace;
@@ -265,11 +285,11 @@ p {
 
 .hex-value.light {
   color: #fff;
-   background-color: rgba(0, 0, 0, 0.1);
+  background-color: rgba(0, 0, 0, 0.1);
 }
 .hex-value.dark {
   color: #000;
-   background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .error-message {
@@ -283,9 +303,9 @@ p {
 }
 
 #download-container {
-    display: flex;
-    justify-content: center;
-    margin-top: -0.5rem; /* Pull it closer to the palette */
+  display: flex;
+  justify-content: center;
+  margin-top: -0.5rem; /* Pull it closer to the palette */
 }
 
 /* Responsive Design */
@@ -293,7 +313,7 @@ p {
   h1 {
     font-size: 2rem;
   }
-  
+
   .input-controls {
     flex-direction: column;
   }
@@ -301,7 +321,7 @@ p {
   .settings-row {
     flex-direction: column;
   }
-  
+
   #palette-container {
     flex-direction: column;
     height: auto;
