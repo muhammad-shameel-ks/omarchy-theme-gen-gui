@@ -9,7 +9,14 @@
   <body>
     <main>
       <header>
-        <h1>AI Color Palette Generator</h1>
+        <div class="header-content">
+          <h1>AI Color Palette Generator</h1>
+          <button id="api-key-button" class="api-key-button" aria-label="Set API Key">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+            </svg>
+          </button>
+        </div>
         <p>Describe a theme or upload an image to generate a beautiful color palette.</p>
       </header>
       <form id="prompt-form">
@@ -62,6 +69,24 @@
         </button>
       </div>
     </main>
+    <!-- API Key Modal -->
+    <div id="api-key-modal" class="api-key-modal" style="display: none;">
+      <div class="api-key-content">
+        <h2>Set Your Gemini API Key</h2>
+        <p>Enter your Google Gemini API key to generate color palettes. Your key is stored locally and never sent to any server.</p>
+        <input
+          type="password"
+          id="api-key-input"
+          class="api-key-input"
+          placeholder="Enter your Gemini API key"
+        />
+        <div id="api-key-error" class="api-key-error">Please enter a valid API key</div>
+        <div class="api-key-buttons">
+          <button id="cancel-api-key" class="cancel-button">Cancel</button>
+          <button id="save-api-key" class="save-button">Save</button>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/index.tsx"></script>
   </body>
 </html>

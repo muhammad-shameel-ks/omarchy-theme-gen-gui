@@ -62,6 +62,12 @@ const buttonText = button.querySelector("span");
 const iconThemeSelect = document.getElementById(
   "icon-theme-select"
 ) as HTMLSelectElement;
+const apiKeyButton = document.getElementById("api-key-button") as HTMLButtonElement;
+const apiKeyModal = document.getElementById("api-key-modal") as HTMLDivElement;
+const apiKeyInput = document.getElementById("api-key-input") as HTMLInputElement;
+const saveApiKeyButton = document.getElementById("save-api-key") as HTMLButtonElement;
+const cancelApiKeyButton = document.getElementById("cancel-api-key") as HTMLButtonElement;
+const apiKeyError = document.getElementById("api-key-error") as HTMLDivElement;
 
 // --- App State ---
 let uploadedImage: { data: string; mimeType: string; name: string } | null =
@@ -69,17 +75,43 @@ let uploadedImage: { data: string; mimeType: string; name: string } | null =
 let currentTheme: FullTheme | null = null;
 let currentThemeName: string | null = null;
 
-// --- Gemini AI Setup ---
-const API_KEY = import.meta.env.VITE_API_KEY;
+// --- API Key Management ---
+let ai: GoogleGenAI | null = null;
 const MAX_PROMPT_LENGTH = 500; // Define a maximum length for the prompt
 const MAX_IMAGE_SIZE_MB = 10; // Define a maximum image size in MB
-if (!API_KEY) {
-  showError("API key is missing. Please set the API_KEY environment variable.");
-  throw new Error(
-    "API key is missing. Please ensure it's properly configured."
-  );
+
+// Initialize API key from localStorage
+function getApiKey(): string | null {
+  return localStorage.getItem('gemini_api_key');
 }
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+
+function setApiKey(apiKey: string): void {
+  localStorage.setItem('gemini_api_key', apiKey);
+}
+
+function initializeAI(): boolean {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    showError("API key is missing. Please set your Gemini API key using the key icon.");
+    return false;
+  }
+  
+  try {
+    ai = new GoogleGenAI({ apiKey });
+    return true;
+  } catch (error) {
+    console.error("Error initializing AI:", error);
+    showError("Failed to initialize AI. Please check your API key.");
+    return false;
+  }
+}
+
+// Check for API key on startup
+if (!getApiKey()) {
+  showError("API key is missing. Please set your Gemini API key using the key icon.");
+} else {
+  initializeAI();
+}
 
 /**
  * Shows an error message in the UI.
@@ -307,6 +339,9 @@ function rgbDistance(
  */
 async function generateThemeName(prompt: string): Promise<string> {
   try {
+    if (!ai) {
+      throw new Error("AI instance is not initialized. Please set your API key.");
+    }
     const response = await ai.models.generateContent({
       model: "gemini-pro", // Using a text-only model for name generation
       contents: `Generate a creative and concise theme name (max 2 words) based on the following description: "${prompt}". If the description is an image, describe the image and generate a name based on it. Separate words with a hyphen. Ensure the name is all lowercase.`,
@@ -714,6 +749,9 @@ async function handleGenerate(event: Event) {
       description: 'A 6-digit hex color code (e.g., "#RRGGBB").',
     };
 
+    if (!ai) {
+      throw new Error("AI instance is not initialized. Please set your API key.");
+    }
     const response = await ai.models.generateContent({
       model: modelName,
       contents: contents,
@@ -838,6 +876,65 @@ function main() {
     downloadButton.addEventListener("click", handleDownload);
   } else {
     console.error("Form element not found!");
+  }
+
+  // API Key modal event listeners
+  if (apiKeyButton) {
+    apiKeyButton.addEventListener("click", () => {
+      apiKeyModal.style.display = "flex";
+      // Pre-fill the input if API key exists
+      const currentApiKey = getApiKey();
+      if (currentApiKey) {
+        apiKeyInput.value = currentApiKey;
+      }
+      apiKeyInput.focus();
+    });
+  }
+
+  if (saveApiKeyButton) {
+    saveApiKeyButton.addEventListener("click", () => {
+      const apiKey = apiKeyInput.value.trim();
+      if (!apiKey) {
+        apiKeyError.style.display = "block";
+        return;
+      }
+
+      // Basic validation: API key should start with "AI" or "api-" or similar patterns
+      if (!apiKey.startsWith('AI') && !apiKey.startsWith('api-')) {
+        apiKeyError.style.display = "block";
+        apiKeyError.textContent = "This doesn't look like a valid Gemini API key";
+        return;
+      }
+
+      setApiKey(apiKey);
+      apiKeyError.style.display = "none";
+      apiKeyModal.style.display = "none";
+      apiKeyInput.value = "";
+
+      // Re-initialize AI with new key
+      if (initializeAI()) {
+        showError("API key saved successfully! You can now generate color palettes.");
+      }
+    });
+  }
+
+  if (cancelApiKeyButton) {
+    cancelApiKeyButton.addEventListener("click", () => {
+      apiKeyModal.style.display = "none";
+      apiKeyInput.value = "";
+      apiKeyError.style.display = "none";
+    });
+  }
+
+  // Close modal when clicking outside the content
+  if (apiKeyModal) {
+    apiKeyModal.addEventListener("click", (e) => {
+      if (e.target === apiKeyModal) {
+        apiKeyModal.style.display = "none";
+        apiKeyInput.value = "";
+        apiKeyError.style.display = "none";
+      }
+    });
   }
 }
 
